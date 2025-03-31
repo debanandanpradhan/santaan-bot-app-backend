@@ -1,0 +1,36 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "@huggingface/inference": "^3.4.1",
+    "@pinecone-database/pinecone": "^5.1.0",
+    "@xenova/transformers": "^2.17.2",
+    "axios": "^1.8.2",
+    "backend": "file:",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "firebase-admin": "^13.1.0",
+    "groq": "^3.79.0",
+    "groq-sdk": "^0.16.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.14.0",
+    "mongoose": "^8.11.0",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "pdf-parse": "^1.1.1",
+    "tiktoken": "^1.0.20"
+  }
+}

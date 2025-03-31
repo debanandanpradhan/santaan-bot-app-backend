@@ -15,7 +15,10 @@ app.use(helmet());
 app.use(morgan("dev"));
 
 // Enable CORS
-app.use(cors());
+app.use(cors({ 
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    credentials: true 
+}));
 
 // JSON Middleware
 app.use(express.json());

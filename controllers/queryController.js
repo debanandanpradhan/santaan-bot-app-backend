@@ -28,7 +28,7 @@ async function getQueryEmbedding(text) {
     try {
         console.log(`🔍 Generating embedding for query: "${text}"`);
         const response = await hf.featureExtraction({
-            model: "Xenova/all-MiniLM-L6-v2",
+            model: "intfloat/multilingual-e5-large",
             inputs: text
         });
 

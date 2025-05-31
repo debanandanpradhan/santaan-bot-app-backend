@@ -15,42 +15,49 @@ async function getPineconeIndex() {
 }
 
 // Load embedding model once
-let extractor = null;
-async function loadModel() {
-    if (!extractor) {
-        extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-    }
-    return extractor;
+let featureExtractor;
+
+async function loadFeatureExtractor() {
+  if (!featureExtractor) {
+    featureExtractor = await pipeline('feature-extraction', 'sentence-transformers/all-MiniLM-L6-v2');
+  }
+  return featureExtractor;
 }
 
-// Cache embeddings to minimize recomputation
-const embeddingCache = new Map();
-
 async function getQueryEmbedding(text) {
-    if (embeddingCache.has(text)) {
-        return embeddingCache.get(text);
+  if (embeddingCache.has(text)) {
+    return embeddingCache.get(text);
+  }
+
+  try {
+    console.log(`🔍 Generating embedding for query: "${text}"`);
+
+    const extractor = await loadFeatureExtractor();
+
+    // Run feature extraction with mean pooling and normalization
+    const output = await extractor(text, {
+      pooling: 'mean',
+      normalize: true
+    });
+
+    // Xenova returns an array of arrays; flatten to get 1D vector
+    let embedding = output?.data || output;
+
+    if (!embedding || !Array.isArray(embedding)) {
+      throw new Error('Invalid embedding format');
     }
 
-    try {
-        console.log(`🔍 Generating embedding for query: "${text}"`);
-        const model = await loadModel();
+    const embeddingArray = Array.from(embedding);
 
-        // This returns an array of arrays: [ [384-d vector] ]
-        const result = await model(text, { pooling: 'mean', normalize: true });
+    embeddingCache.set(text, embeddingArray);
 
-        // Ensure the structure is as expected
-        if (!Array.isArray(result) || !Array.isArray(result[0])) {
-            throw new Error("Invalid embedding format");
-        }
+    console.log('🧠 Embedding length:', embeddingArray.length);
 
-        const flatEmbedding = result[0]; // Correct access to 384-d vector
-
-        embeddingCache.set(text, flatEmbedding);
-        return flatEmbedding;
-    } catch (error) {
-        console.error("❌ Error generating embeddings:", error.message);
-        throw new Error("Embedding generation failed.");
-    }
+    return embeddingArray;
+  } catch (error) {
+    console.error('❌ Error generating embeddings:', error.message);
+    throw new Error('Embedding generation failed.');
+  }
 }
 
 async function fetchOpenAlexResults(query) {

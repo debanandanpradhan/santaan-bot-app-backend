@@ -1,24 +1,29 @@
 const axios = require("axios");
+const { pipeline } = require("@xenova/transformers");
 const { Pinecone } = require("@pinecone-database/pinecone");
-const { HfInference } = require("@huggingface/inference"); 
 require("dotenv").config();
-
-// Initialize Hugging Face API
-const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
 // Initialize Pinecone client
 const client = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
-const index = client.index('quickstart');
+let index;
 
-// let index;
-// async function getPineconeIndex() {
-//     if (!index) {
-//         index = client.index(process.env.PINECONE_INDEX);
-//     }
-//     return index;
-// }
+async function getPineconeIndex() {
+    if (!index) {
+        index = client.index(process.env.PINECONE_INDEX);
+    }
+    return index;
+}
 
-// Cache embeddings to minimize API calls
+// Load embedding model once
+let extractor = null;
+async function loadModel() {
+    if (!extractor) {
+        extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+    }
+    return extractor;
+}
+
+// Cache embeddings to minimize recomputation
 const embeddingCache = new Map();
 
 async function getQueryEmbedding(text) {
@@ -28,17 +33,16 @@ async function getQueryEmbedding(text) {
 
     try {
         console.log(`🔍 Generating embedding for query: "${text}"`);
-        const response = await hf.featureExtraction({
-            model: "sentence-transformers/all-MiniLM-L6-v2",
-            inputs: text
-        });
+        const model = await loadModel();
+        const embeddings = await model(text, { pooling: 'mean', normalize: true });
 
-        if (!Array.isArray(response)) {
-            throw new Error("Invalid embedding response format");
+        if (!Array.isArray(embeddings) || !Array.isArray(embeddings[0])) {
+            throw new Error("Invalid embedding format");
         }
 
-        embeddingCache.set(text, response);
-        return response;
+        const flatEmbedding = embeddings[0]; // shape: [384]
+        embeddingCache.set(text, flatEmbedding);
+        return flatEmbedding;
     } catch (error) {
         console.error("❌ Error generating embeddings:", error.message);
         throw new Error("Embedding generation failed.");
@@ -52,7 +56,7 @@ async function fetchOpenAlexResults(query) {
                 search: query,
                 per_page: 2
             },
-            headers: { Authorization: `Bearer ${process.env.OPENALEX_API_KEY}` } // Use API key
+            headers: { Authorization: `Bearer ${process.env.OPENALEX_API_KEY}` }
         });
 
         const results = response.data.results;
@@ -67,9 +71,9 @@ async function fetchOpenAlexResults(query) {
 
 function refineText(text) {
     return text.replace(/(Textbook|Chapter|published by|includes chapters on|volume editors are).*/gi, "")
-               .split(". ") // Break into sentences
-               .slice(0, 2) // Take only first 2 relevant sentences
-               .join(". ") // Rejoin into cleaned paragraph
+               .split(". ")
+               .slice(0, 2)
+               .join(". ")
                .trim();
 }
 
@@ -104,7 +108,7 @@ exports.queryChatbot = async (req, res) => {
         const openAlexResults = await fetchOpenAlexResults(query);
         console.log("🔬 Found OpenAlex data:", openAlexResults);
 
-        // 🔹 Ensure balance between book and OpenAlex data
+        // 🔹 Combine contexts
         const combinedContext = `Book Data: ${relevantText}. Scientific Insights: ${openAlexResults}.`;
 
         let botResponse;
@@ -115,7 +119,7 @@ exports.queryChatbot = async (req, res) => {
                     { role: "system", content: `Provide a concise, factual answer summarizing key points. Avoid listing study details. Context: ${combinedContext}` }
                 ],
                 model: "llama-3.3-70b-versatile",
-                max_tokens: 1050 // Limit response length
+                max_tokens: 1050
             }, {
                 headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}` }
             });

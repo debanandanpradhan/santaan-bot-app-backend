@@ -18,7 +18,7 @@ const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 // }
 const client = new Pinecone({
   apiKey: process.env.PINECONE_API_KEY,
-  environment: process.env.PINECONE_ENVIRONMENT, // e.g. "gcp-starter" or "us-west4-gcp"
+  controllerHostUrl: `https://controller.${process.env.PINECONE_ENVIRONMENT}.pinecone.io` // e.g. "gcp-starter" or "us-west4-gcp"
 });
 
 let index;

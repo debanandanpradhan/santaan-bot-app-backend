@@ -27,10 +27,10 @@ async function getQueryEmbedding(text) {
 
     try {
         console.log(`🔍 Generating embedding for query: "${text}"`);
-        const response = await hf.featureExtraction({
-            model: "sentence-transformers/all-MiniLM-L6-v2",
-            inputs: text
-        });
+       const response = await hf.featureExtraction("sentence-transformers/all-MiniLM-L6-v2", {
+    inputs: text
+});
+
 
         if (!Array.isArray(response)) {
             throw new Error("Invalid embedding response format");

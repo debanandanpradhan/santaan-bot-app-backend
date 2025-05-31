@@ -15,6 +15,10 @@ async function getPineconeIndex() {
 }
 
 // Load embedding model once
+const { pipeline } = require('@xenova/transformers');
+
+const embeddingCache = new Map();
+
 let featureExtractor;
 
 async function loadFeatureExtractor() {
@@ -28,19 +32,14 @@ async function getQueryEmbedding(text) {
   if (embeddingCache.has(text)) {
     return embeddingCache.get(text);
   }
-
+  
   try {
     console.log(`🔍 Generating embedding for query: "${text}"`);
 
     const extractor = await loadFeatureExtractor();
 
-    // Run feature extraction with mean pooling and normalization
-    const output = await extractor(text, {
-      pooling: 'mean',
-      normalize: true
-    });
+    const output = await extractor(text, { pooling: 'mean', normalize: true });
 
-    // Xenova returns an array of arrays; flatten to get 1D vector
     let embedding = output?.data || output;
 
     if (!embedding || !Array.isArray(embedding)) {

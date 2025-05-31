@@ -28,8 +28,8 @@ async function getQueryEmbedding(text) {
     try {
         console.log(`🔍 Generating embedding for query: "${text}"`);
         const response = await hf.featureExtraction({
-            model: "intfloat/multilingual-e5-large",
-            inputs: `query: ${text}`
+            model: "Xenova/all-MiniLM-L6-v2",
+            inputs: text
         });
 
         if (!Array.isArray(response)) {

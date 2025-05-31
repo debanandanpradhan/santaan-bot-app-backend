@@ -4,7 +4,7 @@ const { HfInference } = require("@huggingface/inference");
 require("dotenv").config();
 
 // Initialize Hugging Face API
-const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
+const client = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
 
 // Initialize Pinecone client
 // const client = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
@@ -39,9 +39,9 @@ async function getQueryEmbedding(text) {
 
     try {
         console.log(`🔍 Generating embedding for query: "${text}"`);
-        const response = await client.embeddings({
-            model: "sentence-transformers/all-MiniLM-L6-v2",
-            input: text,
+        const response = await client.featureExtraction({
+            model: "Xenova/all-MiniLM-L6-v2",
+            inputs: text,
             provider: "hf-inference",
         });
 

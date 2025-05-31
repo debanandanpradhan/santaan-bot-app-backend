@@ -23,7 +23,7 @@ let featureExtractor;
 
 async function loadFeatureExtractor() {
   if (!featureExtractor) {
-    featureExtractor = await pipeline('feature-extraction', 'sentence-transformers/all-MiniLM-L6-v2');
+    featureExtractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
   }
   return featureExtractor;
 }
@@ -38,7 +38,7 @@ async function getQueryEmbedding(text) {
 
     const extractor = await loadFeatureExtractor();
 
-    const output = await extractor(text, { pooling: 'mean', normalize: false });
+    const output = await extractor(text, { pooling: 'mean', normalize: true });
 
     let embedding = output?.data || output;
 

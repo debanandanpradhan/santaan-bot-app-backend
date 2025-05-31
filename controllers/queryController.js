@@ -34,13 +34,17 @@ async function getQueryEmbedding(text) {
     try {
         console.log(`🔍 Generating embedding for query: "${text}"`);
         const model = await loadModel();
-        const embeddings = await model(text, { pooling: 'mean', normalize: true });
 
-        if (!Array.isArray(embeddings) || !Array.isArray(embeddings[0])) {
+        // This returns an array of arrays: [ [384-d vector] ]
+        const result = await model(text, { pooling: 'mean', normalize: true });
+
+        // Ensure the structure is as expected
+        if (!Array.isArray(result) || !Array.isArray(result[0])) {
             throw new Error("Invalid embedding format");
         }
 
-        const flatEmbedding = embeddings[0]; // shape: [384]
+        const flatEmbedding = result[0]; // Correct access to 384-d vector
+
         embeddingCache.set(text, flatEmbedding);
         return flatEmbedding;
     } catch (error) {

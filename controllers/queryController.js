@@ -28,7 +28,7 @@ async function getQueryEmbedding(text) {
     try {
         console.log(`🔍 Generating embedding for query: "${text}"`);
         const response = await hf.sentenceSimilarity({
-            model: "sentence-transformers/all-MiniLM-L6-v2",
+            model: "sentence-transformers/msmarco-MiniLM-L12-v3",
             inputs: text
         });
 

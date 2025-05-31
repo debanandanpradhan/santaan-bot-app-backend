@@ -23,7 +23,7 @@ let featureExtractor;
 
 async function loadFeatureExtractor() {
   if (!featureExtractor) {
-    featureExtractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+    featureExtractor = await pipeline('feature-extraction', 'sentence-transformers/all-MiniLM-L6-v2', { quantized: false });
   }
   return featureExtractor;
 }

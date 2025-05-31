@@ -29,7 +29,7 @@ async function getQueryEmbedding(text) {
         console.log(`🔍 Generating embedding for query: "${text}"`);
         const response = await hf.featureExtraction({
             model: "intfloat/multilingual-e5-large",
-            inputs: text
+             inputs: `query: ${text}`
         });
 
         if (!Array.isArray(response)) {

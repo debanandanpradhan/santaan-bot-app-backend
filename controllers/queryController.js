@@ -4,7 +4,7 @@ const { HfInference } = require("@huggingface/inference");
 require("dotenv").config();
 
 // Initialize Hugging Face API
-const hf = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
+const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
 // Initialize Pinecone client
 // const client = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });

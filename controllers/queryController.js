@@ -40,7 +40,7 @@ async function getQueryEmbedding(text) {
     try {
         console.log(`🔍 Generating embedding for query: "${text}"`);
         const response = await hf.featureExtraction({
-            model: "Xenova/all-MiniLM-L6-v2",
+            model: "sentence-transformers/paraphrase-MiniLM-L6-v2",
             inputs: text,
             provider: "hf-inference",
         });

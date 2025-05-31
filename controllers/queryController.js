@@ -39,9 +39,9 @@ async function getQueryEmbedding(text) {
 
     try {
         console.log(`🔍 Generating embedding for query: "${text}"`);
-        const response = await client.featureExtraction({
+        const response = await client.embeddings({
             model: "sentence-transformers/all-MiniLM-L6-v2",
-            inputs: text,
+            input: text,
             provider: "hf-inference",
         });
 

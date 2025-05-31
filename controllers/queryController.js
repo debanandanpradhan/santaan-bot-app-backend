@@ -51,7 +51,7 @@ async function getQueryEmbedding(text) {
         embeddingCache.set(text, response);
         return response;
     } catch (error) {
-        console.error("❌ Error generating embeddings:", error.message);
+        console.error("❌ Error generating embeddings:", error.response?.data || error.message);
         throw new Error("Embedding generation failed.");
     }
 }

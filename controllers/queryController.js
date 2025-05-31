@@ -1,4 +1,4 @@
-const axios = require("axios");
+const axios = require("axios");Add commentMore actions
 const { Pinecone } = require("@pinecone-database/pinecone");
 const { HfInference } = require("@huggingface/inference"); 
 require("dotenv").config();
@@ -7,7 +7,8 @@ require("dotenv").config();
 const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
 // Initialize Pinecone client
-// const client = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
+const client = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
+const index = client.index('quickstart');
 
 // let index;
 // async function getPineconeIndex() {
@@ -16,18 +17,6 @@ const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 //     }
 //     return index;
 // }
-const client = new Pinecone({
-  apiKey: process.env.PINECONE_API_KEY,
-  controllerHostUrl: `https://controller.${process.env.PINECONE_ENVIRONMENT}.pinecone.io` // e.g. "gcp-starter" or "us-west4-gcp"
-});
-
-let index;
-async function getPineconeIndex() {
-  if (!index) {
-    index = await pinecone.index(process.env.PINECONE_INDEX);
-  }
-  return index;
-}
 
 // Cache embeddings to minimize API calls
 const embeddingCache = new Map();
@@ -40,9 +29,8 @@ async function getQueryEmbedding(text) {
     try {
         console.log(`🔍 Generating embedding for query: "${text}"`);
         const response = await hf.featureExtraction({
-            model: "sentence-transformers/paraphrase-MiniLM-L6-v2",
-            inputs: text,
-            provider: "hf-inference",
+            model: "sentence-transformers/all-MiniLM-L6-v2",
+            inputs: text
         });
 
         if (!Array.isArray(response)) {
@@ -52,7 +40,7 @@ async function getQueryEmbedding(text) {
         embeddingCache.set(text, response);
         return response;
     } catch (error) {
-        console.error("❌ Error generating embeddings:", error.response?.data || error.message);
+        console.error("❌ Error generating embeddings:", error.message);
         throw new Error("Embedding generation failed.");
     }
 }

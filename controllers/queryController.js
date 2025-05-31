@@ -15,7 +15,7 @@ async function getPineconeIndex() {
 }
 
 // Load embedding model once
-const { pipeline } = require('@xenova/transformers');
+
 
 const embeddingCache = new Map();
 

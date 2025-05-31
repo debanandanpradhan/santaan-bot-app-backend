@@ -1,4 +1,4 @@
-const axios = require("axios");Add commentMore actions
+const axios = require("axios");
 const { Pinecone } = require("@pinecone-database/pinecone");
 const { HfInference } = require("@huggingface/inference"); 
 require("dotenv").config();

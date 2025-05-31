@@ -7,14 +7,26 @@ require("dotenv").config();
 const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
 // Initialize Pinecone client
-const client = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
+// const client = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
+
+// let index;
+// async function getPineconeIndex() {
+//     if (!index) {
+//         index = client.index(process.env.PINECONE_INDEX);
+//     }
+//     return index;
+// }
+const client = new Pinecone({
+  apiKey: process.env.PINECONE_API_KEY,
+  environment: process.env.PINECONE_ENVIRONMENT, // e.g. "gcp-starter" or "us-west4-gcp"
+});
 
 let index;
 async function getPineconeIndex() {
-    if (!index) {
-        index = client.index(process.env.PINECONE_INDEX);
-    }
-    return index;
+  if (!index) {
+    index = await pinecone.index(process.env.PINECONE_INDEX);
+  }
+  return index;
 }
 
 // Cache embeddings to minimize API calls
@@ -28,7 +40,7 @@ async function getQueryEmbedding(text) {
     try {
         console.log(`🔍 Generating embedding for query: "${text}"`);
         const response = await hf.featureExtraction({
-            model: "Xenova/all-MiniLM-L6-v2",
+            model: "sentence-transformers/all-MiniLM-L6-v2",
             inputs: text
         });
 

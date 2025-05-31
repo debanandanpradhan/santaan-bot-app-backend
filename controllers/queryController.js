@@ -1,12 +1,15 @@
 const axios = require("axios");
-const { pipeline } = require("@xenova/transformers");
 const { Pinecone } = require("@pinecone-database/pinecone");
+const { HfInference } = require("@huggingface/inference"); 
 require("dotenv").config();
+
+// Initialize Hugging Face API
+const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
 // Initialize Pinecone client
 const client = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
-let index;
 
+let index;
 async function getPineconeIndex() {
     if (!index) {
         index = client.index(process.env.PINECONE_INDEX);
@@ -14,49 +17,31 @@ async function getPineconeIndex() {
     return index;
 }
 
-// Load embedding model once
-
-
+// Cache embeddings to minimize API calls
 const embeddingCache = new Map();
 
-let featureExtractor;
-
-async function loadFeatureExtractor() {
-  if (!featureExtractor) {
-    featureExtractor = await pipeline('feature-extraction', 'sentence-transformers/all-MiniLM-L6-v2', { quantized: false });
-  }
-  return featureExtractor;
-}
-
 async function getQueryEmbedding(text) {
-  if (embeddingCache.has(text)) {
-    return embeddingCache.get(text);
-  }
-  
-  try {
-    console.log(`🔍 Generating embedding for query: "${text}"`);
-
-    const extractor = await loadFeatureExtractor();
-
-    const output = await extractor(text, { pooling: 'mean', normalize: true });
-
-    let embedding = output?.data || output;
-
-    if (!embedding || !Array.isArray(embedding)) {
-      throw new Error('Invalid embedding format');
+    if (embeddingCache.has(text)) {
+        return embeddingCache.get(text);
     }
 
-    const embeddingArray = Array.from(embedding);
+    try {
+        console.log(`🔍 Generating embedding for query: "${text}"`);
+        const response = await hf.featureExtraction({
+            model: "sentence-transformers/all-MiniLM-L6-v2",
+            inputs: text
+        });
 
-    embeddingCache.set(text, embeddingArray);
+        if (!Array.isArray(response)) {
+            throw new Error("Invalid embedding response format");
+        }
 
-    console.log('🧠 Embedding length:', embeddingArray.length);
-
-    return embeddingArray;
-  } catch (error) {
-    console.error('❌ Error generating embeddings:', error.message);
-    throw new Error('Embedding generation failed.');
-  }
+        embeddingCache.set(text, response);
+        return response;
+    } catch (error) {
+        console.error("❌ Error generating embeddings:", error.message);
+        throw new Error("Embedding generation failed.");
+    }
 }
 
 async function fetchOpenAlexResults(query) {
@@ -66,7 +51,7 @@ async function fetchOpenAlexResults(query) {
                 search: query,
                 per_page: 2
             },
-            headers: { Authorization: `Bearer ${process.env.OPENALEX_API_KEY}` }
+            headers: { Authorization: `Bearer ${process.env.OPENALEX_API_KEY}` } // Use API key
         });
 
         const results = response.data.results;
@@ -81,9 +66,9 @@ async function fetchOpenAlexResults(query) {
 
 function refineText(text) {
     return text.replace(/(Textbook|Chapter|published by|includes chapters on|volume editors are).*/gi, "")
-               .split(". ")
-               .slice(0, 2)
-               .join(". ")
+               .split(". ") // Break into sentences
+               .slice(0, 2) // Take only first 2 relevant sentences
+               .join(". ") // Rejoin into cleaned paragraph
                .trim();
 }
 
@@ -118,7 +103,7 @@ exports.queryChatbot = async (req, res) => {
         const openAlexResults = await fetchOpenAlexResults(query);
         console.log("🔬 Found OpenAlex data:", openAlexResults);
 
-        // 🔹 Combine contexts
+        // 🔹 Ensure balance between book and OpenAlex data
         const combinedContext = `Book Data: ${relevantText}. Scientific Insights: ${openAlexResults}.`;
 
         let botResponse;
@@ -129,7 +114,7 @@ exports.queryChatbot = async (req, res) => {
                     { role: "system", content: `Provide a concise, factual answer summarizing key points. Avoid listing study details. Context: ${combinedContext}` }
                 ],
                 model: "llama-3.3-70b-versatile",
-                max_tokens: 1050
+                max_tokens: 1050 // Limit response length
             }, {
                 headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}` }
             });
@@ -148,3 +133,4 @@ exports.queryChatbot = async (req, res) => {
         res.status(500).json({ error: "Internal Server Error", details: error.message });
     }
 };
+

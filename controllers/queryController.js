@@ -26,11 +26,12 @@ async function getQueryEmbedding(text) {
     }
 
     try {
-        console.log(`🔍 Generating embedding for query: "${text}"`);
-       const response = await hf.featureExtraction("sentence-transformers/all-MiniLM-L6-v2", {
-    inputs: text
-});
-
+        console.log(🔍 Generating embedding for query: "${text}");
+        const response = await hf.featureExtraction({
+            // model: "sentence-transformers/all-MiniLM-L6-v2",
+             model: "Xenova/all-MiniLM-L6-v2",
+            inputs: text
+        });
 
         if (!Array.isArray(response)) {
             throw new Error("Invalid embedding response format");
@@ -51,7 +52,7 @@ async function fetchOpenAlexResults(query) {
                 search: query,
                 per_page: 2
             },
-            headers: { Authorization: `Bearer ${process.env.OPENALEX_API_KEY}` } // Use API key
+            headers: { Authorization: Bearer ${process.env.OPENALEX_API_KEY} } // Use API key
         });
 
         const results = response.data.results;
@@ -104,19 +105,19 @@ exports.queryChatbot = async (req, res) => {
         console.log("🔬 Found OpenAlex data:", openAlexResults);
 
         // 🔹 Ensure balance between book and OpenAlex data
-        const combinedContext = `Book Data: ${relevantText}. Scientific Insights: ${openAlexResults}.`;
+        const combinedContext = Book Data: ${relevantText}. Scientific Insights: ${openAlexResults}.;
 
         let botResponse;
         try {
             const groqResponse = await axios.post("https://api.groq.com/openai/v1/chat/completions", {
                 messages: [
                     { role: "user", content: query },
-                    { role: "system", content: `Provide a concise, factual answer summarizing key points. Avoid listing study details. Context: ${combinedContext}` }
+                    { role: "system", content: Provide a concise, factual answer summarizing key points. Avoid listing study details. Context: ${combinedContext} }
                 ],
                 model: "llama-3.3-70b-versatile",
                 max_tokens: 1050 // Limit response length
             }, {
-                headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}` }
+                headers: { Authorization: Bearer ${process.env.GROQ_API_KEY} }
             });
 
             botResponse = groqResponse.data.choices[0]?.message?.content || "I'm not sure how to respond.";
@@ -133,4 +134,3 @@ exports.queryChatbot = async (req, res) => {
         res.status(500).json({ error: "Internal Server Error", details: error.message });
     }
 };
-

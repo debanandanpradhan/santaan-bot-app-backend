@@ -38,7 +38,7 @@ async function getQueryEmbedding(text) {
 
     const extractor = await loadFeatureExtractor();
 
-    const output = await extractor(text, { pooling: 'mean', normalize: true });
+    const output = await extractor(text, { pooling: 'mean', normalize: false });
 
     let embedding = output?.data || output;
 

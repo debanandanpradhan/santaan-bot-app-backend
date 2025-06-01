@@ -26,23 +26,31 @@ async function getQueryEmbedding(text) {
     }
 
     try {
-        console.log(`🔍 Generating embedding for query: "${text}"`);
-        const response = await hf.featureExtraction({
-            model: "sentence-transformers/all-MiniLM-L6-v2",
-            inputs: text
+        console.log(`🔍 Generating embedding using Cohere for: "${text}"`);
+        const response = await axios.post("https://api.cohere.ai/v1/embed", {
+            texts: [text],
+            model: "embed-english-v3.0", // returns 384-dim vector
+            input_type: "search_query"
+        }, {
+            headers: {
+                "Authorization": `Bearer ${process.env.COHERE_API_KEY}`,
+                "Content-Type": "application/json"
+            }
         });
 
-        if (!Array.isArray(response)) {
-            throw new Error("Invalid embedding response format");
+        const embedding = response.data.embeddings?.[0];
+        if (!Array.isArray(embedding) || embedding.length !== 384) {
+            throw new Error("Invalid embedding returned from Cohere.");
         }
 
-        embeddingCache.set(text, response);
-        return response;
-    } catch (error) {
-        console.error("❌ Error generating embeddings:", error.message);
+        embeddingCache.set(text, embedding);
+        return embedding;
+    } catch (err) {
+        console.error("❌ Cohere Embedding Error:", err.message);
         throw new Error("Embedding generation failed.");
     }
 }
+
 
 async function fetchOpenAlexResults(query) {
     try {

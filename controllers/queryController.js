@@ -4,9 +4,6 @@ const { HfInference } = require("@huggingface/inference");
 require("dotenv").config();
 
 // Initialize Hugging Face API
-const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
-
-// Initialize Pinecone client
 const client = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
 
 let index;
@@ -17,39 +14,37 @@ async function getPineconeIndex() {
     return index;
 }
 
-// Cache embeddings to minimize API calls
-const embeddingCache = new Map();
-
+// Embedding using Cohere
 async function getQueryEmbedding(text) {
-    if (embeddingCache.has(text)) {
-        return embeddingCache.get(text);
-    }
-
     try {
-        console.log(`🔍 Generating embedding using Cohere for: "${text}"`);
-        const response = await axios.post("https://api.cohere.ai/v1/embed", {
-            texts: [text],
-            model: "embed-english-v3.0", // returns 384-dim vector
-            input_type: "search_query"
-        }, {
-            headers: {
-                "Authorization": `Bearer ${process.env.COHERE_API_KEY}`,
-                "Content-Type": "application/json"
+        const response = await axios.post(
+            "https://api.cohere.ai/v1/embed",
+            {
+                texts: [text],
+                model: "embed-english-v3.0", // Ensure the model supports 384 dimensions
+                input_type: "search_query"
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.COHERE_API_KEY}`,
+                    "Content-Type": "application/json"
+                }
             }
-        });
+        );
 
         const embedding = response.data.embeddings?.[0];
         if (!Array.isArray(embedding) || embedding.length !== 384) {
+            console.error("❌ Invalid embedding:", embedding);
             throw new Error("Invalid embedding returned from Cohere.");
         }
 
-        embeddingCache.set(text, embedding);
         return embedding;
-    } catch (err) {
-        console.error("❌ Cohere Embedding Error:", err.message);
+    } catch (error) {
+        console.error("❌ Cohere Embedding Error:", error.response?.data || error.message);
         throw new Error("Embedding generation failed.");
     }
 }
+
 
 
 async function fetchOpenAlexResults(query) {

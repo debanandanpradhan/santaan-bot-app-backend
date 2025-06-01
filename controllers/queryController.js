@@ -23,31 +23,40 @@ async function getPineconeIndex() {
 const embeddingCache = new Map();
 
 let extractor;
-
-async function getQueryEmbedding(text) {
+async function initExtractor() {
     if (!extractor) {
         extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     }
-
+    return extractor;
+}
+async function getQueryEmbedding(text) {
     if (embeddingCache.has(text)) {
         return embeddingCache.get(text);
     }
 
     try {
-        console.log(`🔍 Generating local embedding for: "${text}"`);
+        const extractor = await initExtractor();
+        console.log(`🔍 Generating embedding locally for: "${text}"`);
+
         const output = await extractor(text, {
             pooling: 'mean',
             normalize: true
         });
 
-        const embedding = output.data[0]; // 384-dim vector
+        const embedding = output?.data?.[0];
+
+        if (!Array.isArray(embedding) || embedding.length !== 384) {
+            throw new Error("Invalid embedding format returned.");
+        }
+
         embeddingCache.set(text, embedding);
         return embedding;
     } catch (error) {
-        console.error("❌ Embedding error:", error.message);
-        throw new Error("Embedding generation failed.");
+        console.error("❌ Error generating embeddings:", error.message);
+        throw new Error("Failed to generate valid query embedding.");
     }
 }
+
 async function fetchOpenAlexResults(query) {
     try {
         const response = await axios.get("https://api.openalex.org/works", {

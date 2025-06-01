@@ -33,10 +33,10 @@ async function getQueryEmbedding(text) {
         );
 
         const embedding = response.data.embeddings?.[0];
-        if (!Array.isArray(embedding) || embedding.length !== 384) {
-            console.error("❌ Invalid embedding:", embedding);
-            throw new Error("Invalid embedding returned from Cohere.");
-        }
+        if (!Array.isArray(embedding) || embedding.length < 300) {
+               console.warn("⚠️ Unusually small embedding:", embedding.length);
+    throw new Error("Embedding may be incomplete or truncated.");
+    }
 
         return embedding;
     } catch (error) {

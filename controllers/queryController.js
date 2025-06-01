@@ -1,8 +1,6 @@
 const axios = require("axios");
 const { Pinecone } = require("@pinecone-database/pinecone");
 const { HfInference } = require("@huggingface/inference"); 
-const { pipeline } = require('@xenova/transformers');
-
 require("dotenv").config();
 
 // Initialize Hugging Face API
@@ -22,38 +20,27 @@ async function getPineconeIndex() {
 // Cache embeddings to minimize API calls
 const embeddingCache = new Map();
 
-let extractor;
-async function initExtractor() {
-    if (!extractor) {
-        extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-    }
-    return extractor;
-}
 async function getQueryEmbedding(text) {
     if (embeddingCache.has(text)) {
         return embeddingCache.get(text);
     }
 
     try {
-        const extractor = await initExtractor();
-        console.log(`🔍 Generating embedding locally for: "${text}"`);
-
-        const output = await extractor(text, {
-            pooling: 'mean',
-            normalize: true
+        console.log(`🔍 Generating embedding for query: "${text}"`);
+        const response = await hf.featureExtraction({
+            model: "sentence-transformers/all-MiniLM-L6-v2",
+            inputs: text
         });
 
-        const embedding = output?.data?.[0];
-
-        if (!Array.isArray(embedding) || embedding.length !== 384) {
-            throw new Error("Invalid embedding format returned.");
+        if (!Array.isArray(response)) {
+            throw new Error("Invalid embedding response format");
         }
 
-        embeddingCache.set(text, embedding);
-        return embedding;
+        embeddingCache.set(text, response);
+        return response;
     } catch (error) {
         console.error("❌ Error generating embeddings:", error.message);
-        throw new Error("Failed to generate valid query embedding.");
+        throw new Error("Embedding generation failed.");
     }
 }
 

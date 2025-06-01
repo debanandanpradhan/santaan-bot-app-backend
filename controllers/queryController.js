@@ -1,6 +1,8 @@
 const axios = require("axios");
 const { Pinecone } = require("@pinecone-database/pinecone");
 const { HfInference } = require("@huggingface/inference"); 
+const { pipeline } = require('@xenova/transformers');
+
 require("dotenv").config();
 
 // Initialize Hugging Face API
@@ -20,30 +22,32 @@ async function getPineconeIndex() {
 // Cache embeddings to minimize API calls
 const embeddingCache = new Map();
 
+let extractor;
+
 async function getQueryEmbedding(text) {
+    if (!extractor) {
+        extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+    }
+
     if (embeddingCache.has(text)) {
         return embeddingCache.get(text);
     }
 
     try {
-        console.log(`🔍 Generating embedding for query: "${text}"`);
-        const response = await hf.sentenceSimilarity({
-            model: "sentence-transformers/msmarco-MiniLM-L12-v3",
-            inputs: text
+        console.log(`🔍 Generating local embedding for: "${text}"`);
+        const output = await extractor(text, {
+            pooling: 'mean',
+            normalize: true
         });
 
-        if (!Array.isArray(response)) {
-            throw new Error("Invalid embedding response format");
-        }
-
-        embeddingCache.set(text, response);
-        return response;
+        const embedding = output.data[0]; // 384-dim vector
+        embeddingCache.set(text, embedding);
+        return embedding;
     } catch (error) {
-        console.error("❌ Error generating embeddings:", error.message);
+        console.error("❌ Embedding error:", error.message);
         throw new Error("Embedding generation failed.");
     }
 }
-
 async function fetchOpenAlexResults(query) {
     try {
         const response = await axios.get("https://api.openalex.org/works", {
